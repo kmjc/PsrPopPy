@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2.7
 
 import os
 import sys
@@ -12,11 +12,11 @@ __dir__ = os.path.dirname(os.path.abspath(__file__))
 __libdir__ = os.path.dirname(__dir__)
 filepath = os.path.join(__libdir__, 'psrpoppy', 'fortran')
 
-yklib = C.CDLL(filepath+'/libykarea.so')
+yklib = C.CDLL(filepath+'/libykarea.dylib')
 yklib.ykr_.restype = C.c_float
 yklib.llfr_.restype = C.c_float
 
-seedlib = C.CDLL(filepath+'/libgetseed.so')
+seedlib = C.CDLL(filepath+'/libgetseed.dylib')
 seedlib.getseed_.restype = C.c_int
 
 def seed():
@@ -27,7 +27,7 @@ def seed():
 def slabdist():
     x = -15.0 + random.random()*30.0
     y = -15.0 + random.random()*30.0
-    z = -5.0 + random.random() * 10.0 
+    z = -5.0 + random.random() * 10.0
 
     return (x, y, z)
 
@@ -52,9 +52,9 @@ def spiralize( r):
     k_list = [4.25,4.25,4.89,4.89]
     r0_list = [3.48,3.48,4.9,4.9]
     theta0_list = [1.57,4.71,4.09,0.95]
-    
+
     # select a spiral arm ( 1->4)
-    arm = random.choice([0,1,2,3]) 
+    arm = random.choice([0,1,2,3])
     k = k_list[arm]
     r0 = r0_list[arm]
     theta0 = theta0_list[arm]

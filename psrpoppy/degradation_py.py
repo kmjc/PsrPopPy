@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2.7
 
 import math
 
@@ -9,7 +9,7 @@ def calc_gamma1(pulsar, survey):
 
     # angles from 0 -> 2pi
     full_circle = [x*10.*3.142/180. for x in range(36)]
-    
+
     # calculate probabilities, and normalise
     probabilities = [_calc_prob(pulsar, x) for x in full_circle]
     probabilities = _normalise(probabilities)
@@ -26,21 +26,21 @@ def calc_gamma1(pulsar, survey):
 def find_alpha1(pulsar, survey):
     ### THIS BIT NEEDS FILLING IN
 
-    
+
 
     return False
 
 
 def kepler_solve_1(ecc, mean_anom):
 
-    ecc_anom = mean_anom + ecc * math.sin(mean_anom) * \ 
+    ecc_anom = mean_anom + ecc * math.sin(mean_anom) * \
                      (1. + ecc * math.cos(mean_anom))
     e_fit = ecc_anom + 10.
 
     # newton-raphson method
-    n_inter = 0 
+    n_inter = 0
     while math.fabs(e_fit - ecc_anom)>1.E-10:
-        
+
         e_fit = _newton_raphson_kepler1(mean_anom, ecc_anom, ecc)
         ecc_anom = e_fit
         n_iter += 1
@@ -66,7 +66,7 @@ def _normalise(l):
     return [x / m for x in l]
 
 def _calc_prob(pulsar, angle_rad):
-    
+
     denom = (1. + pulsar.ecc * math.cos(angle))**2.
     return 1./denom
 

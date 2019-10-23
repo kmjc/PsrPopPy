@@ -1,3 +1,5 @@
+#!/usr/bin/python2.7
+
 # A Python Library to create a Progress Bar.
 # Copyright (C) 2008  BJ Dierkes <wdierkes@5dollarwhitebox.org>
 #

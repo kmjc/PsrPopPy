@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2.7
 
 import os
 
@@ -13,13 +13,13 @@ __dir__ = os.path.dirname(os.path.abspath(__file__))
 __libdir__ = os.path.dirname(__dir__)
 fortranpath = os.path.join(__libdir__, 'psrpoppy', 'fortran')
 
-ne2001lib = C.CDLL(os.path.join(fortranpath, 'libne2001.so'))
+ne2001lib = C.CDLL(os.path.join(fortranpath, 'libne2001.dylib'))
 ne2001lib.dm_.restype = C.c_float
 
-slalib = C.CDLL(os.path.join(fortranpath, 'libsla.so'))
-vxyzlib = C.CDLL(os.path.join(fortranpath, 'libvxyz.so'))
+slalib = C.CDLL(os.path.join(fortranpath, 'libsla.dylib'))
+vxyzlib = C.CDLL(os.path.join(fortranpath, 'libvxyz.dylib'))
 
-yklib = C.CDLL(os.path.join(fortranpath, 'libykarea.so'))
+yklib = C.CDLL(os.path.join(fortranpath, 'libykarea.dylib'))
 yklib.ykr_.restype = C.c_float
 yklib.llfr_.restype = C.c_float
 
