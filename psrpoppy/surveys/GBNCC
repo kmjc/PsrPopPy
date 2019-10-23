@@ -4,8 +4,8 @@
   1.3  ! survey degradation factor
   2.0  ! antenna gain (K/Jy)
   120. ! integration time (s)
-  81.92 ! sampling time (ms)
-  46.  ! system temperature (K)
+  0.08192 ! sampling time (ms)
+  23.  ! system temperature (K)
   350 ! centre frequency (MHz)
   100  ! bandwidth (MHz)
   0.0244  ! channel bandwidth (MHz)

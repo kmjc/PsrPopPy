@@ -1,4 +1,4 @@
-#!/usr/bin/python2.7
+#!/usr/bin/env python2
 
 import sys
 import argparse
@@ -42,13 +42,17 @@ class PopulateException(Exception):
 def generate(ngen,
              surveyList=None,
              pDistType='lnorm',
+             pdotDistType='lnorm',
              radialDistType='lfl06',
              radialDistPars=7.5,
              electronModel='ne2001',
              pDistPars=[2.7, -0.34],
+             pdotDistPars=[-19.9, 0.5],
              siDistPars=[-1.6, 0.35],
              lumDistType='lnorm',
              lumDistPars=[-1.1, 0.9],
+             velDistType='gauss',
+             velDistPars=[0., 86.17],
              zscaleType='exp',
              zscale=0.33,
              duty_percent=6.,
@@ -67,11 +71,16 @@ def generate(ngen,
     surveyList -- a list of surveys you want to use to try and detect
         the pulsars
     pDistType -- the pulsar period distribution model to use (def=lnorm)
+    pdotDistType -- the pulsar period derivative distribution model to
+                    use (def=lnorm)
     radialDistType -- radial distribution model
     electronModel -- mode to use for Galactic electron distribution
     pDistPars -- parameters to use for period distribution
+    pdotDistPars -- parameters to use for period derivative dist
     siDistPars -- parameters to use for spectral index distribution
     lumDistPars -- parameters to use for luminosity distribution
+    velDistType -- single velocity component distribution model
+    velDistPars -- parameters for velocity distribution
     radialDistPars -- parameters for radial distribution
     zscale -- if using exponential z height, set it here (in kpc)
     scindex -- spectral index of the scattering model
@@ -83,11 +92,18 @@ def generate(ngen,
     pop = Population()
 
     # check that the distribution types are supported....
-    if lumDistType not in ['lnorm', 'pow']:
+    if lumDistType not in ['lnorm', 'pow', 'fk06']:
         print "Unsupported luminosity distribution: {0}".format(lumDistType)
+
+    if velDistType not in ['gauss']:
+       print "Unsupported velocity distribution: {0}".format(velDistType)
 
     if pDistType not in ['lnorm', 'norm', 'cc97', 'lorimer12']:
         print "Unsupported period distribution: {0}".format(pDistType)
+
+    if pdotDistType not in ['lnorm']:
+        print "Unsupported period derivative distribution: {0}".format(
+            pdotDistType)
 
     if radialDistType not in ['lfl06', 'yk04', 'isotropic',
                               'slab', 'disk', 'gauss']:
@@ -104,9 +120,11 @@ def generate(ngen,
 
     # need to use properties in this class so they're get/set-type props
     pop.pDistType = pDistType
+    pop.pdotDistType = pdotDistType
     pop.radialDistType = radialDistType
     pop.electronModel = electronModel
     pop.lumDistType = lumDistType
+    pop.velDistType = velDistType
 
     pop.rsigma = radialDistPars
     pop.pmean, pop.psigma = pDistPars
@@ -118,6 +136,12 @@ def generate(ngen,
     if pop.lumDistType == 'lnorm':
         pop.lummean, pop.lumsigma = \
                 lumDistPars[0], lumDistPars[1]
+    elif pop.lumDistType == 'fk06':
+        try:
+            pop.lumPar1, pop.lumPar2, pop.lumPar3 = \
+                lumDistPars[0], lumDistPars[1], lumDistPars[2]
+        except ValueError:
+            raise PopulateException('Not enough lum distn parameters for "fk06"')
     else:
         try:
             pop.lummin, pop.lummax, pop.lumpow = \
@@ -127,6 +151,24 @@ def generate(ngen,
 
     pop.zscaleType = zscaleType
     pop.zscale = zscale
+
+    if pop.pdotDistType == 'lnorm':
+        try:
+            pop.pdotmean, pop.pdotsigma = \
+                pdotDistPars[0], pdotDistPars[1]
+        except ValueError:
+            raise PopulateException('Not enough pdot distn parameters')
+    else:
+        sys.exit()
+
+    if pop.velDistType == 'gauss':
+        try:
+            pop.velmean, pop.velsigma = \
+                velDistPars[0], velDistPars[1]
+        except ValueError:
+            raise PopulateException('Not enough velocity distn parameters')
+    else:
+        sys.exit()
 
     # store the dict of arguments inside the model. Could be useful.
     try:
@@ -173,7 +215,7 @@ def generate(ngen,
         # Declare new pulsar object
         p = Pulsar()
 
-        # period, alpha, rho, width distribution calls
+        # period, pdot, alpha, rho, width distribution calls
         # Start creating the pulsar!
         if pop.pDistType == 'lnorm':
             p.period = dists.drawlnorm(pop.pmean, pop.psigma)
@@ -187,20 +229,31 @@ def generate(ngen,
         elif pop.pDistType == 'lorimer12':
             p.period = _lorimer2012_msp_periods()
 
+        # Draw pdots from lognormal distribution, assuming
+        # independent of period. Is this true?
+        if pop.pdotDistType == 'lnorm':
+            p.pdot = dists.drawlnorm(pop.pdotmean, pop.pdotsigma)
+
+        # Draw perp  velocity components from independent normal dist
+        if pop.velDistType == 'gauss':
+            p.vels = (random.gauss(pop.velmean, pop.velsigma),
+                    random.gauss(pop.velmean, pop.velsigma),
+                    random.gauss(pop.velmean, pop.velsigma))
+
         if duty_percent > 0.:
             # use a simple duty cycle for each pulsar
             # with a log-normal scatter
             width = (float(duty_percent)/100.) * p.period**0.9
             width = math.log10(width)
             width = dists.drawlnorm(width, 0.3)
-
+            p.width_ms = width
             p.width_degree = width*360./p.period
         else:
             # use the model to caculate if beaming
             p.alpha = _genAlpha()
 
             p.rho, p.width_degree = _genRhoWidth(p)
-
+            p.width_ms = p.width_degree * p.period / 360.
             if p.width_degree == 0.0 and p.rho == 0.0:
                 continue
             # is pulsar beaming at us? If not, move on!
@@ -285,10 +338,18 @@ def generate(ngen,
         if pop.lumDistType == 'lnorm':
             p.lum_1400 = dists.drawlnorm(pop.lummean,
                                          pop.lumsigma)
+        elif pop.lumDistType == 'fk06':
+            p.lum_1400 = luminosity_fk06(p,
+                            alpha=pop.lumPar1,
+                            beta=pop.lumPar2,
+                            gamma=pop.lumPar3)
         else:
             p.lum_1400 = dists.powerlaw(pop.lummin,
                                         pop.lummax,
                                         pop.lumpow)
+
+        # calc proper motion
+        p.pm = proper_motion(p)
 
         # add in orbital parameters
         if orbits:
@@ -364,6 +425,54 @@ def generate(ngen,
 
     return pop
 
+# This function should be external since its called by evolve and populate
+def luminosity_fk06(pulsar, alpha=-1.4, beta=0.5, gamma=0.35):
+    """Equation 14 from  Ridley & Lorimer 2010
+       References Faucher and Kaspi 2006
+       Rajwade et al. 2016 find gamma = 0.009 for MSPs but assume
+       alpha and beta same as for classical pulsars. Unsubstantiated.
+    """
+    # variables to use in the equation
+    delta_l = random.gauss(0.0, 0.8)
+
+    # the equation
+    logL = math.log10(gamma) + alpha*math.log10(pulsar.period/1000.) + \
+        beta * math.log10(pulsar.pdot * 1.0e15) + delta_l
+
+    # set L
+    return 10.0**logL
+
+def proper_motion(pulsar):
+    """
+    Compute proper motion in mas/yr
+    """
+
+    rsun = 8.5 #kpc
+    t = math.atan2(pulsar.galCoords[1], pulsar.galCoords[0])
+
+    # approximate rotation curve
+    if abs(pulsar.r0) > 3.: # kpc
+        v_r = 222.
+    else:
+        v_r = 74. * abs(pulsar.r0)
+
+    # velocity components
+    vtot_x = pulsar.vels[0] + v_r * math.sin(t) - 222.
+    vtot_y = pulsar.vels[1] - v_r * math.cos(t)
+    vtot_z = pulsar.vels[2]
+    vtot = math.sqrt(vtot_x ** 2 + vtot_y ** 2 + vtot_z ** 2)
+    norm = math.sqrt(pulsar.galCoords[0] ** 2 + \
+                     (pulsar.galCoords[1] - rsun) ** 2 + \
+                     pulsar.galCoords[2] ** 2)
+    v_para = (vtot_x * pulsar.galCoords[0] + \
+              vtot_y * (pulsar.galCoords[1] - rsun) + \
+              vtot_z * pulsar.galCoords[2]) / norm
+    v_perp = math.sqrt(vtot ** 2 - v_para ** 2)
+
+    # Compute proper motion from 2D v component perp to LOS
+    pm = v_perp * 0.211 / pulsar.dtrue
+
+    return pm
 
 def _lorimer2012_msp_periods():
     """Picks a period at random from Dunc's
@@ -417,7 +526,7 @@ def _genRhoWidth(psr):
     # cut off period for model
     perCut = 30.0
 
-    # calclate rho
+    # calclate rho (Kramer et al., 1998)
     randfactor = random.uniform(-.15, .15)
     if psr.period > perCut:
         rho = _rhoLaw(psr.period)
@@ -506,10 +615,32 @@ if __name__ == '__main__':
                         help='period distribution mean and std dev \
                                  (def= [2.7, -0.34], Lorimer et al. 2006)')
 
+    # 2D velocity distribution parameters
+    parser.add_argument('-veldist', nargs=1, required=False, default=['gauss'],
+                        help='type of distribution to use for transverse \
+                                velocities',
+                        choices=['gauss'])
+
+    parser.add_argument('-vel', nargs=2, required=False, type=float,
+                        default=[0, 86.17],
+                        help='velocity distribution mean and std dev in km/s \
+                                 (def= [0, 86.17], Gonzalez et al. 2011)')
+
+    # pdot distribution parameters
+    parser.add_argument('-pdotdist', nargs=1, required=False, default=['lnorm'],
+                        help='type of distribution to use for period \
+                        derivatives',
+                        choices=['lnorm'])
+
+    parser.add_argument('-pdot', nargs=2, required=False, type=float,
+                        default=[-19.9, 0.5],
+                        help='period derivative distribution mean and std dev \
+                                 (def= [-19.9, 0.5], Needs justification)')
+
     # luminosity distribution parameters
     parser.add_argument('-ldist', nargs=1, required=False, default=['lnorm'],
                         help='distribution to use for luminosities',
-                        choices=['lnorm', 'pow'])
+                        choices=['lnorm', 'pow', 'fk06'])
     parser.add_argument('-l', nargs='+', required=False, type=float,
                         default=[-1.1, 0.9],
                         help='luminosity distribution mean and std dev \
@@ -571,6 +702,7 @@ if __name__ == '__main__':
                    radialDistPars=args.r,
                    pDistPars=args.p,
                    lumDistPars=args.l,
+                   velDistPars=args.vel,
                    siDistPars=args.si,
                    zscaleType=args.zdist[0],
                    zscale=args.z,

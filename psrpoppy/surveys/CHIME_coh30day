@@ -1,0 +1,24 @@
+###############################################################################
+# putative pulsar survey with CHIME using 30 days consec coherent stacking
+###############################################################################
+  1.0                 ! survey degradation factor
+  1.0                 ! sampling time (ms)
+# 1.44                ! antenna gain (K/Jy)
+# 4930                ! integration time (s)
+  50                  ! system temperature (K)
+  600                 ! centre frequency (MHz)
+  400                 ! bandwidth (MHz)
+  0.0244140625        ! channel bandwidth (MHz)
+  2                   ! number of polarizations
+  0.                  ! minimum RA (deg)
+  360.                ! maximum RA (deg)
+ -20.                 ! minimum DEC (deg)
+  90.                 ! maximum DEC (deg)
+ -180                 ! minimum Galactic longitude (deg)
+  180                 ! maximum Galactic longitude (deg)
+  0.                  ! minimum abs(Galactic latitude) (deg)
+  90                  ! maximum abs(Galactic latitude) (deg)
+  pointings_CHIME_coherent_gainCosine_30.txt ! pointing list equatorial
+  17.18               ! full-width half maximum (arcmin)
+  1.0                 ! fractional survey coverage (0-1)
+  9.0                 ! signal-to-noise ratio

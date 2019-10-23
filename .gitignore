@@ -1,5 +1,5 @@
 PMSURV.results
-populate.model
+populate.model*
 populate.cmd
 evolve.model
 evolve.cmd
@@ -9,12 +9,20 @@ junk.py
 *.results
 *.so
 *.o
+*.os
 *~
+#*#
 *pyc
 fortran/build
 fortran/compile.txt
+build/
+dist/
+setup-requires
+.sconsign.dblite
 *.swp
 threadpop.py
 build/
 .sconsign.dblite
 dist/
+\#*\#
+.DS_Store

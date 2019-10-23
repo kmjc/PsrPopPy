@@ -1,5 +1,5 @@
 ###############################################################################
-# model of the Parkes multibeam survey - main parameters
+# model of the Arecibo 327 MHz Drift-scan Survey with exact pointings
 ###############################################################################
   1.1  ! survey degradation factor
   10.  ! antenna gain (K/Jy)
